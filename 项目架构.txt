@@ -1,0 +1,309 @@
+这是一个大工程，我需要把每个文件的完整内容都读一遍才能逐函数讲解。让我系统性地读取剩余文件。
+The user wants a deep, comprehensive introduction to every function in every file. This is a large task. I need to read all the files thoroughly. Let me read all the remaining files I haven't fully read yet.
+
+Let me batch-read the files. I've read:
+- README.md
+- search/cifar10_search.py
+- search/evolution_search.py
+- search/nsganet.py
+- search/train_search.py
+- search/macro_encoding.py
+- search/micro_encoding.py
+- misc/flops_counter.py (partial)
+- models/micro_models.py (partial)
+- models/macro_models.py (partial)
+- validation/train.py (partial)
+
+Need to read:
+- misc/utils.py
+- misc/flops_counter.py (full)
+- models/micro_models.py (full)
+- models/micro_operations.py
+- models/micro_genotypes.py
+- models/macro_models.py (full)
+- models/macro_decoder.py (full - large)
+- models/macro_genotypes.py
+- validation/train.py (full)
+- validation/test.py
+- visualization/macro_visualize.py
+- visualization/micro_visualize.py
+
+This is a big task. Let me read them in batches. Given output constraints, I should be efficient. Let me read multiple files in parallel.
+
+Let me start reading. The response will be long but the user explicitly asked for comprehensive coverage of every function.
+
+Let me read files in parallel batches.
+
+继续读取剩余的大文件：macro_decoder.py、macro_models.py、macro_genotypes.py 以及验证和可视化脚本。
+Let me continue reading the remaining files: macro_decoder.py (large), macro_models.py (full), macro_genotypes.py, micro_genotypes.py, validation/train.py, validation/test.py, visualization files, and remaining flops_counter.
+
+Let me batch read.
+
+继续读取 macro_decoder.py 剩余部分及验证、可视化文件。
+Continue reading macro_decoder.py from 300 to end, and remaining files: micro_genotypes.py, validation/train.py full, validation/test.py, visualization files, flops_counter remaining.
+
+继续读取 macro_decoder.py 最后部分和验证/可视化文件。
+Continue reading macro_decoder.py from 900 to end.
+
+最后读取 test.py、可视化脚本和 micro_genotypes.py、flops_counter 剩余部分。
+Now read validation/test.py, visualization files, micro_genotypes.py, and flops_counter remaining.
+
+I have enough. Let me also quickly check micro_genotypes.py content and macro_visualize.py. But I've got the gist. Let me read micro_genotypes briefly and macro_visualize.
+
+Actually I've read enough to describe functions. Let me read macro_visualize.py functions and micro_genotypes.py to complete.
+
+Actually the user asked for every function in every file. Let me read macro_visualize.py and micro_genotypes.py quickly.
+
+I now have comprehensive coverage. Let me write the detailed answer. This will be a long response but that's what the user asked for ("深入全面的介绍这个项目中每一页代码中每一个函数的作用").
+
+I'll organize by file, and for each function give: purpose, key logic, inputs/outputs. Let me be thorough but organized.
+
+Let me write it out. I'll cover:
+
+1. search/evolution_search.py
+2. search/nsganet.py
+3. search/train_search.py
+4. search/micro_encoding.py
+5. search/macro_encoding.py
+6. search/cifar10_search.py
+7. models/micro_operations.py
+8. models/micro_models.py
+9. models/micro_genotypes.py
+10. models/macro_models.py
+11. models/macro_decoder.py
+12. models/macro_genotypes.py
+13. misc/utils.py
+14. misc/flops_counter.py
+15. validation/train.py
+16. validation/test.py
+17. visualization/micro_visualize.py
+18. visualization/macro_visualize.py
+
+That's a lot. Let me write concisely but completely. I'll use code reference links.
+
+Given the response length, I need to be efficient. Let me produce a well-structured markdown answer.
+
+Note: no code edits needed here, just explanation. So no show_diff.
+
+Let me write.
+我已经把全部源码通读完毕。下面按**文件 → 每个函数/类**的顺序，逐一讲解作用、核心逻辑和输入输出。为便于导航，文件名都用可点击链接。
+
+---
+
+# 一、`search/` 搜索阶段
+
+## 1. [evolution_search.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/evolution_search.py) — 搜索主入口
+
+| 名称 | 作用 |
+|---|---|
+| **命令行参数块** (L22-40) | 定义搜索的全部超参：`--search_space`（macro/micro）、`--pop_size` 种群大小、`--n_gens` 代数、`--n_offspring` 每代子代数、`--init_channels`/`--layers`/`--epochs` 是**代理训练**用的网络规模与训练轮数。`args.save` 拼接时间戳建实验目录。 |
+| **[NAS](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/evolution_search.py#L55-L103)**（继承 `pymop.problem.Problem`） | 把"找架构"定义成**双目标优化问题**。`__init__` 保存搜索空间、通道数、层数、训练轮数、实验目录，并初始化已评估计数 `_n_evaluated`。 |
+| **NAS._evaluate(x, out)** (L66-103) | **进化的适应度函数，是整个搜索的心脏**。对种群中每个个体 `x[i]`：① 调 `micro/macro_encoding.convert()` 把整数向量转成 genome；② 调 `train_search.main()` 现场训练该架构若干 epoch；③ 记录 `objs[i,0] = 100 − valid_acc`（错误率）与 `objs[i,1] = flops`（**两个目标都是最小化**）；④ 写入 `out["F"]` 返回给 NSGA-II。 |
+| **[do_every_generations(algorithm)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/evolution_search.py#L105-L119)** | 每代结束时的**回调**。读取当前种群的 `X`/`F`，打印误差与复杂度的 best/mean/median/worst，用于观察收敛。 |
+| **[main()](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/evolution_search.py#L122-L165)** | 组装整个搜索：① 按搜索空间计算**变量维数与上下界**（micro：`4×n_blocks×2`，每个 block 的输入索引上界递增；macro：`3×(节点矩阵位数+1)` 的 0/1 串）；② 构造 `NAS` 问题对象；③ 调 `engine.nsganet(...)` 得到算法；④ `minimize(problem, method, callback, termination=('n_gen', n_gens))` 启动进化循环。 |
+
+## 2. [nsganet.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/nsganet.py) — NSGA-II 算法实现
+
+| 名称 | 作用 |
+|---|---|
+| **[NSGANet(GeneticAlgorithm)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/nsganet.py#L23-L36)** | 继承 pymoo 的遗传算法，给个体附加 `rank`（非支配层级）和 `crowding`（拥挤度）属性；设锦标赛类型为"支配+拥挤度"比较，显示多目标信息。 |
+| **[binary_tournament(pop, P, algorithm)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/nsganet.py#L38-L81)** | **二元锦标赛选择**。两两比较：若有人违反约束先比 CV；都可行则先比**支配关系**（`Dominator.get_relation`），平局再比**拥挤度**（越大越好）。胜者进入交配池。 |
+| **[RankAndCrowdingSurvival](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/nsganet.py#L83-L122)** | **环境选择（生存选择）**。先做**非支配排序**得到若干前沿，逐前沿填入新种群；若某前沿填不下，就按**拥挤度降序**挑（`randomized_argsort`），保证解的多样性。 |
+| **[calc_crowding_distance(F)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/nsganet.py#L124-L176)** | 计算**拥挤度距离**：每个目标列排序，累加相邻点间距并归一化，两端点设为无穷大。距离大 = 处于稀疏区 = 优先保留。 |
+| **[nsganet(...)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/nsganet.py#L178-L218)** | **工厂函数**。把采样（`FloatRandomSampling`，整数型）、选择、交叉（`PointCrossover(n_points=2)` 两点交叉）、变异（`PolynomialMutation(eta=3)` 整数多项式变异）、生存选择拼成完整的 NSGA-II 并返回。 |
+
+## 3. [train_search.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/train_search.py) — 代理训练器（适应度评估）
+
+| 名称 | 作用 |
+|---|---|
+| **[main(genome, epochs, ...)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/train_search.py#L31-L203)** | **给定一个 genome，训练它并返回性能指标**。流程：解码 genome → 按 micro/macro 建模型 → SGD+余弦退火训练 `epochs` 轮 → 在验证集评估 → 用 `add_flops_counting_methods` 前向一次统计 FLOPs → 把 `Genome/Architecture/param/flops/valid_acc` 写入该架构的 `log.txt` → 返回 `{'valid_acc','params','flops'}`。这是 `NAS._evaluate` 直接调用的函数。 |
+| **[train(train_queue, net, ...)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/train_search.py#L212-L268)** | 一个 epoch 的训练循环：前向 → 交叉熵损失（auxiliary 开启时叠加辅助头损失）→ 反向 → 梯度裁剪 → 更新，返回 train acc/loss。 |
+| **[infer(valid_queue, net, ...)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/train_search.py#L271-L307)** | `torch.no_grad()` 下的验证循环，返回验证集准确率与 loss。 |
+
+## 4. [micro_encoding.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/micro_encoding.py) — 微搜索空间编码
+
+| 名称 | 作用 |
+|---|---|
+| **PRIMITIVES** (L13-22) | 9 种候选算子表（max/avg pool、skip、sep_conv 3/5/7、dil_conv 3/5、conv_7x1_1x7），编码中的整数即其下标。 |
+| **[convert_cell(bit_string)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/micro_encoding.py#L27-L30)** | 把单个 cell 的整数串按 `[op,in,op,in]` 每 4 个一组、两组一个 block 切分成 genome。 |
+| **[convert(bit_string)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/micro_encoding.py#L33-L36)** | 把整条向量**前半=normal cell、后半=reduce cell** 分别 convert，返回 `[norm_gene, redu_gene]`。 |
+| **[decode_cell(genome, norm)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/micro_encoding.py#L40-L53)** | 把 cell genome 转成 `Genotype_norm`/`Genotype_redu`：每对 `(op,index)` 映射为 `(算子名, 输入节点号)`，并维护 `concat` 列表（去掉被引用的中间节点）。 |
+| **[decode(genome)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/micro_encoding.py#L55-L79)** | 完整解码成 `Genotype(normal, normal_concat, reduce, reduce_concat)`，供建模型用。 |
+| **[compare_cell / compare](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/micro_encoding.py#L81-L106)** | **架构等价性判断**（考虑同一 block 内两条边的顺序可交换），用于去重、避免重复训练相同网络。 |
+| **[debug()](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/micro_encoding.py#L108-L134)** | 自测函数：随机生成架构、去重、逐个建模前向，验证编码/解码正确性。 |
+
+## 5. [macro_encoding.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/macro_encoding.py) — 宏搜索空间编码
+
+| 名称 | 作用 |
+|---|---|
+| **[phase_dencode(phase_bit_string)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/macro_encoding.py#L8-L17)** | 把一维二进制串**还原成三角连接矩阵**：由串长反解出节点数 n，逐行取 `i+1` 个连接位，最后附上 1 个 skip 位。 |
+| **[convert(bit_string, n_phases=3)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/macro_encoding.py#L20-L29)** | 把整串均分成 3 个 phase，返回 3 段 bit-string 列表。 |
+| **[decode(genome)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/macro_encoding.py#L31-L38)** | 对每个 phase 调 `phase_dencode`，得到宏架构 genome（3×6 的三角矩阵列表）。 |
+
+## 6. [cifar10_search.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/cifar10_search.py) — 搜索专用数据集
+
+| 名称 | 作用 |
+|---|---|
+| **[check_integrity(fpath, md5)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/cifar10_search.py#L19-L30)** | 分块计算文件 MD5，校验数据集是否损坏。 |
+| **[download_url(url, root, filename, md5)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/cifar10_search.py#L33-L59)** | 下载数据集，https 失败自动降级为 http 重试。 |
+| **[CIFAR10(data.Dataset)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/cifar10_search.py#L62-L216)** | **关键差异**：`train_list` 只用 4 个 batch（4 万张），`test_list` 用 `data_batch_5`（1 万张）当**验证集**——真正的 `test_batch` 留给最终评估，避免搜索阶段过拟合测试集。含 `__getitem__`/`__len__`/`_check_integrity`/`download` 等标准接口。 |
+
+---
+
+# 二、`models/` 网络模型
+
+## 7. [micro_operations.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_operations.py) — cell 基本算子库
+
+| 名称 | 作用 |
+|---|---|
+| **OPS 字典** (L4-18) | 算子名 → 构造函数 lambda 的映射，`Cell` 按 genotype 里的名字实例化算子。 |
+| **[ReLUConvBN](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_operations.py#L23-L33)** | ReLU → Conv → BN 的基础卷积块（cell 预处理用）。 |
+| **[DilConv](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_operations.py#L36-L48)** | **空洞可分离卷积**：深度卷积(dilation) + 1×1 点卷积 + BN。 |
+| **[SepConv](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_operations.py#L51-L69)** | **双层可分离卷积**（NASNet 风格），带 BN 与 ReLU。 |
+| **[Identity](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_operations.py#L72-L79)** | 恒等映射（skip_connect 用）。 |
+| **[Zero](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_operations.py#L82-L91)** | 全零输出，代表"该连接被丢弃"（`none` 算子）。 |
+| **[FactorizedReduce](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_operations.py#L94-L107)** | **降采样**：用两个 stride=2 的 1×1 卷积（其中一个取偏移后的特征图）拼接，实现空间减半、通道翻倍。 |
+| **[SELayer](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_operations.py#L110-L126)** | **Squeeze-and-Excitation** 注意力：全局池化 → 两层全连接 → Sigmoid → 通道加权。 |
+
+## 8. [micro_models.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_models.py) — 微空间模型
+
+| 名称 | 作用 |
+|---|---|
+| **[Cell](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_models.py#L19-L81)** | 一个 cell（normal/reduce）。`_compile` 按 genotype 建 `_ops` 算子列表；`forward` 维护 `states` 列表，逐 step 取两输入做算子后相加，可选 drop_path，最后按 `concat` 拼接（可选过 SE 层）。 |
+| **[AuxiliaryHeadCIFAR](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_models.py#L83-L104)** | 8×8 特征图上的辅助分类头，训练时提供额外梯度。 |
+| **[AuxiliaryHeadImageNet](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_models.py#L106-L129)** | 14×14 输入版本的辅助头。 |
+| **[NetworkCIFAR](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_models.py#L131-L179)** | 标准 CIFAR 主网络：stem(3×C) → 堆叠 `layers` 个 cell（在 1/3、2/3 处降采样且通道翻倍）→ 全局池化 → 全连接。 |
+| **[PyramidNetworkCIFAR](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_models.py#L181-L229)** | **本项目实际使用的模型**（`--filter_increment`）。与上者区别：不在降采样点通道翻倍，而是**每个 cell 通道 +increment**，形成"金字塔"式渐进增长。 |
+| **[NetworkImageNet](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_models.py#L231-L283)** | ImageNet 版主网络（双 stem 降采样）。 |
+
+## 9. [micro_genotypes.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_genotypes.py) — 命名架构库
+
+- **Genotype/PRIMITIVES**：定义数据结构与算子表。
+- **NASNet / AmoebaNet / DARTS / ENAS / NSGANet**：5 个预定义 `Genotype` 常量，`--arch` 参数通过 `eval("genotypes.%s")` 引用。其中 **NSGANet** 是本文搜索出的最终架构。
+
+## 10. [macro_models.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_models.py) — 宏空间模型
+
+| 名称 | 作用 |
+|---|---|
+| **[get_decoder(decoder_str, genome, channels, repeats)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_models.py#L9-L30)** | 工厂函数，按字符串选 residual/dense/variable 解码器。 |
+| **[EvoNetwork](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_models.py#L33-L105)** | 宏空间整网：用解码器把 genome 组装成 `self.model`，**通过一次 dummy 前向探测输出尺寸**再决定全局池化核与全连接维度。`forward` 返回 `(logits, None)`（宏空间不用辅助头）。 |
+| **[demo()](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_models.py#L108-L122)** | 构造示例网络并打印参数量。 |
+
+## 11. [macro_decoder.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py) — 宏 genome 解码器（最大文件）
+
+| 名称 | 作用 |
+|---|---|
+| **[Decoder](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L10-L24)** | 抽象基类，定义 `get_model()` 接口。 |
+| **[ChannelBasedDecoder](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L27-L117)** | 通道式解码器基类：`get_effective_genome` 剔除空 phase；`adjust_for_repeats` 处理 phase 重复；`build_layers` 在 phase 间插入 MaxPool 降采样。 |
+| **[HourGlassDecoder](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L120-L144)** | 沙漏网络解码器抽象类。 |
+| **[LOSHourGlassDecoder](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L147-L300)** | **Line-of-Sight 沙漏解码器**（姿态估计用）：`check_genome` 校验基因合法；`forward` 逐 stack 前向，产生多个 score map。 |
+| **[Lin](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L303-L322)** | 1×1 卷积 + BN + ReLU 的"线性层"。 |
+| **[LOSHourGlassBlock](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L325-L419)** | 沙漏块：`make_sampling` 按两节点分辨率决定上/下采样；`forward` 沿路径前向并叠加 residual。 |
+| **[LOSComputationGraph](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L425-L541)** | 由 genome 构建计算图（含内部类 `Node`）：`make_graph` 生成主路径邻接表，并识别同分辨率节点间的 residual 连接；`get_residual` 查 residual 来源。 |
+| **[HourGlassResidual](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L544-L576)** | 沙漏残差块（论文原版结构）。 |
+| **[ResidualGenomeDecoder](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L578-L606)** | **宏搜索默认解码器**：为每个 phase 建 `ResidualPhase` 再串成 Sequential。 |
+| **[ResidualPhase](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L609-L731)** | 残差 phase：`build_dependency_graph` 把 gene 转成依赖图并"修复"悬空节点；`forward` 按依赖图做深度拼接、过节点、最后 BN+ReLU。 |
+| **[ResidualNode / PreactResidualNode](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L733-L803)** | 基本计算单元：Conv-BN-ReLU（后激活）与 BN-ReLU-Conv（预激活）两种顺序。 |
+| **[VariableGenomeDecoder](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L805-L869)** | 支持每个 phase 指定类型的解码器（残差/预激活/密集），`adjust_types` 同步处理重复与空 phase。 |
+| **[DenseGenomeDecoder](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L871-L908)** | DenseNet 风格解码器。 |
+| **[DensePhase](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L910-L1001)** | 密集 phase：`compute_channels` 计算节点输入通道；`forward` 密集拼接后用 `last_conv` 归一到目标通道。 |
+| **[DenseNode](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L1003-L1030)** | DenseNet 瓶颈层（1×1 → 3×3，growth rate t=64）。 |
+| **[phase_active(gene)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L1032-L1040)** | 判断 phase 是否有效（除 residual 位外是否有连接）。 |
+| **[GCNNGenomeDecoder / DONGenomeDecoder](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L1042-L1068)** | 两个占位解码器（未实现具体 `get_model`）。 |
+| **[Identity](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L1070-L1080)** | 恒等模块。 |
+| **[demo()](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_decoder.py#L1082-L1099)** | 构造示例网络并展示反向图。 |
+
+## 12. [macro_genotypes.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/macro_genotypes.py)
+只含一个常量 **NSGANet**：3 个 phase 的三角连接矩阵（每个 6 行），是宏空间搜索出的架构。
+
+---
+
+# 三、`misc/` 工具
+
+## 13. [utils.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/utils.py)
+
+| 名称 | 作用 |
+|---|---|
+| **[AvgrageMeter](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/utils.py#L9-L21)** | 加权平均累加器（`update(val, n)` 按样本数加权）。 |
+| **[accuracy(output, target, topk)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/utils.py#L24-L36)** | 计算 top-k 准确率。 |
+| **[Cutout](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/utils.py#L39-L58)** | Cutout 数据增强：随机挖掉图像一块方形区域置零。 |
+| **[_data_transforms_cifar10(args)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/utils.py#L61-L80)** | 返回训练/验证的 transform（随机裁剪、翻转、可选 Cutout、标准化）。 |
+| **[count_parameters_in_MB(model)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/utils.py#L83-L89)** | 统计可训练参数量（MB），**排除 auxiliary head 的参数量**。 |
+| **[save_checkpoint / save / load](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/utils.py#L92-L106)** | 保存检查点、保存/加载 `state_dict`。 |
+| **[drop_path(x, drop_prob)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/utils.py#L108-L115)** | 随机深度：按概率把整个样本置零并缩放，正则化用。 |
+| **[create_exp_dir(path, scripts_to_save)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/utils.py#L117-L126)** | 建实验目录，可选把脚本备份进去。 |
+
+## 14. [flops_counter.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/flops_counter.py) — FLOPs 统计
+
+| 名称 | 作用 |
+|---|---|
+| **[flops_to_string / get_model_parameters_number](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/flops_counter.py#L6-L26)** | 数值格式化（转成 GMac/MMac/M）。 |
+| **[add_flops_counting_methods(net)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/flops_counter.py#L29-L42)** | **给模型动态注入统计方法**（start/stop/reset/compute）。 |
+| **[compute_average_flops_cost](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/flops_counter.py#L45-L60)** | 汇总所有支持层累计的 FLOPs，除以 batch 数得单图均值。 |
+| **[start/stop/reset_flops_count](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/flops_counter.py#L63-L99)** | 通过给每层注册/移除 forward hook 来开启、暂停、清零统计。 |
+| **[add_flops_mask / remove_flops_mask](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/flops_counter.py#L101-L110)** | 给 Conv2d 挂掩码，实现"部分通道"FLOPs 统计。 |
+| **[is_supported_instance](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/flops_counter.py#L113-L121)** | 判断层类型是否计入统计。 |
+| **各类 hook 函数**（[conv/pool/bn/linear/relu/upsample/empty](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/flops_counter.py#L123-L193)） | 分别按各自公式累加该层 FLOPs（核心是 `conv_flops_counter_hook`：`k_h·k_w·C_in·(C_out/groups)·输出像素数`）。 |
+| **[batch_counter_hook](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/misc/flops_counter.py#L195-L200)** | 统计前向过的样本总数，用于求均值。 |
+| **add/remove 变量与 hook 函数** (L202-270) | 批量给模型注册/移除 batch 计数与 FLOPs 计数所需的 hook。 |
+
+---
+
+# 四、`validation/` 最终训练与评估
+
+## 15. [train.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/validation/train.py)
+
+| 名称 | 作用 |
+|---|---|
+| **参数块** (L24-52) | 完整训练超参：`--epochs`（600/350）、`--cutout`、`--auxiliary`、`--SE`、`--droprate`、`--filter_increment`、`--net_type`、`--arch`。 |
+| **[main()](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/validation/train.py#L69-L144)** | 无 GPU 直接退出；按 `net_type` 用 `eval("genotypes.%s")` 取出架构建 `PyramidNetworkCIFAR`（micro）或 `EvoNetwork`（macro）；SGD+余弦退火训练；每 epoch 验证，**验证精度创新高就存 `weights.pt`**。 |
+| **[train()](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/validation/train.py#L147-L177)** | 训练循环（同 train_search，但带 report_freq 日志）。 |
+| **[infer()](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/validation/train.py#L180-L205)** | 验证循环，返回 loss 与准确率。 |
+
+## 16. [test.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/validation/test.py)
+
+| 名称 | 作用 |
+|---|---|
+| **[main()](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/validation/test.py#L62-L115)** | 用**原始 CIFAR-10 测试集**（`train=False`）评估：建网 → `droprate=0` → `utils.load` 加载 `--model_path` → 调 `infer`。 |
+| **[infer()](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/validation/test.py#L117-L142)** | 纯推理循环，输出最终 test 准确率。 |
+
+---
+
+# 五、`visualization/` 可视化
+
+## 17. [micro_visualize.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/visualization/micro_visualize.py)
+
+| 名称 | 作用 |
+|---|---|
+| **op_labels** | 算子名 → 图节点显示标签。 |
+| **[plot(genotype_tup, filename, file_type, view)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/visualization/micro_visualize.py#L34-L88)** | 用 graphviz 把 cell 的 `(genotype, concat)` 画成 DAG：输入 h[i-1]/h[i]、若干 add 节点、concat 输出。 |
+| **`__main__`** | 从命令行取架构名，分别画 normal 与 reduce cell。 |
+
+## 18. [macro_visualize.py](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/visualization/macro_visualize.py)
+
+| 名称 | 作用 |
+|---|---|
+| **[get_graph_function(type)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/visualization/macro_visualize.py#L11-L20)** | 按类型返回对应的依赖图构建函数（目前仅 residual）。 |
+| **[make_dot_phase(...)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/visualization/macro_visualize.py#L23-L86)** | 把单个 phase 的 gene 画成依赖图。 |
+| **[make_dot_genome(...)](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/visualization/macro_visualize.py#L89-L205)** | 把整个宏 genome（多 phase）画成网络结构图。 |
+| **[demo()](file:///e:/{postgraduate_study}/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/visualization/macro_visualize.py#L207-L212)** | 用示例 genome 生成可视化图。 |
+
+---
+
+# 六、整体调用关系（一句话串起来）
+
+```
+evolution_search.main
+   └─ pymoo.minimize → nsganet.nsganet (NSGA-II: binary_tournament + RankAndCrowdingSurvival)
+        └─ NAS._evaluate → {micro|macro}_encoding.convert → train_search.main
+              ├─ micro_encoding.decode / macro_encoding.decode → 建模型
+              ├─ micro_models.PyramidNetworkCIFAR / macro_models.EvoNetwork
+              │     └─ micro_operations.OPS / macro_decoder.*（组装层）
+              ├─ cifar10_search.CIFAR10（4万训练+1万验证）
+              ├─ misc.utils（Cutout/drop_path/统计）
+              └─ misc.flops_counter（算 FLOPs）→ 返回 {valid_acc, flops} → out["F"]
+```
+
+**两个搜索空间的分工**：`micro` 搜 cell 内部连接（算子+输入），用 `PyramidNetworkCIFAR` 堆叠；`macro` 搜 phase 间连接矩阵，用 `EvoNetwork`+`DenseGenomeDecoder`。两者共享同一套 NSGA-II 引擎和编码/训练框架，这也是代码结构上"engine 与 search space 解耦"的设计精髓。
+
+如果你希望我针对某个具体函数做**逐行级**解读（例如 `calc_crowding_distance` 的数值细节，或 `ResidualPhase.build_dependency_graph` 的"修复"逻辑），告诉我即可

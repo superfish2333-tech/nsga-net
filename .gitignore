@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# 虚拟环境（服务器副本里带过来的，绝不能提交）
+.venv/
+venv/
+env/
+
+# QAS（暂不纳入）
+qsearch/
+
+# 实验产物
+search-GA-BiObj-micro-*/
+qas-QAS-VQE-*/
+*.pth
+*.pt
+*.tar.gz
+*.log
+run.log
+
+# 数据
+data/
+cifar-10-python.tar.gz
+
+# 编辑器 / 本地配置
+.vscode/
+.idea/
+.trae/
+*.swp

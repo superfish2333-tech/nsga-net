@@ -1,0 +1,118 @@
+## 三条命令就能覆盖全流程
+
+所有命令都要**先在项目根目录**执行（数据路径 `../data` 和产物目录都是相对路径）：
+
+```powershell
+cd "e:\{postgraduate_study}\Article and Code\EA_NAS_PRJ\nsga-net-master"
+```
+
+> PowerShell 里调用 `.venv` 的解释器必须用 `&`：`& ".\.venv\Scripts\python.exe" ...`
+
+---
+
+## 一、架构搜索（主力命令）
+
+### 1. 冒烟测试（几分钟，验证链路）
+
+```powershell
+& ".\.venv\Scripts\python.exe" search/evolution_search.py --search_space micro --pop_size 4 --n_gens 1 --epochs 1 --init_channels 8 --layers 2
+```
+
+### 2. 小规模搜索（几小时，能看出进化是否在改善）
+
+```powershell
+& ".\.venv\Scripts\python.exe" search/evolution_search.py --search_space micro --pop_size 10 --n_gens 5 --epochs 10 --init_channels 16 --layers 8
+```
+
+### 3. 论文级配置（单卡需要跑很久）
+
+```powershell
+& ".\.venv\Scripts\python.exe" search/evolution_search.py --search_space micro --pop_size 40 --n_gens 50 --epochs 25 --init_channels 24 --layers 11
+```
+
+### 4. 宏搜索空间（搜整体拓扑）
+
+```powershell
+& ".\.venv\Scripts\python.exe" search/evolution_search.py --search_space macro --n_nodes 4 --pop_size 20 --n_gens 20 --epochs 15 --init_channels 32
+```
+
+**参数含义（已核对源码）**
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| `--search_space` | `micro` | `micro` 搜 Cell 内部结构；`macro` 搜整体拓扑 |
+| `--pop_size` | 40 | 种群规模 = 每代保留的架构数 |
+| `--n_gens` | 50 | 进化代数 |
+| `--n_offspring` | 40 | 每代生成的子代数量 |
+| `--epochs` | 25 | 每个架构的代理训练轮数（越大越可信、越慢） |
+| `--init_channels` | 24 | 第一层通道数（越大网络越宽） |
+| `--layers` | 11 | Cell 堆叠层数（≈论文的 N=3） |
+| `--save` | `GA-BiObj` | 实验名前缀 |
+| `--seed` | 0 | 随机种子 |
+
+结果目录：`search-<实验名>-micro-<时间戳>\`，其中 `log.txt` 记录每个架构的 `Genotype`、`valid_acc`、`flops`，以及每代 `population error/complexity` 统计。
+
+---
+
+## 二、完整训练（验证搜到的架构真实精度）
+
+```powershell
+& ".\.venv\Scripts\python.exe" validation/train.py --net_type micro --arch NSGANet --layers 20 --init_channels 34 --filter_increment 4 --cutout --auxiliary --SE --droprate 0.2 --batch_size 96 --learning_rate 0.025 --epochs 600
+```
+
+想快速验证能不能跑（1 epoch）：
+
+```powershell
+& ".\.venv\Scripts\python.exe" validation/train.py --net_type micro --arch NSGANet --layers 8 --init_channels 16 --batch_size 64 --epochs 1
+```
+
+**常用参数**
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| `--arch` | `NSGANet` | 可用：`NASNet` / `AmoebaNet` / `DARTS` / `ENAS` / `NSGANet`（见 [micro_genotypes.py](file:///e:/%7Bpostgraduate_study%7D/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_genotypes.py)） |
+| `--net_type` | `micro` | 与搜索空间保持一致 |
+| `--epochs` | 600 | 完整训练轮数 |
+| `--batch_size` | 96 | 显存不够就降到 64/32 |
+| `--layers` | 20 | 堆叠层数（≈N=6） |
+| `--init_channels` | 32 | 初始通道 |
+| `--filter_increment` | 4 | 每阶段通道增量 |
+| `--cutout` / `--auxiliary` / `--SE` | 关 | 三个开关，分别在数据增强 / 辅助头 / 注意力上 |
+| `--droprate` | 0 | dropout 概率 |
+
+产物目录 `train-EXP-<时间戳>\`，含 `log.txt` 和 `model.pt`。
+
+---
+
+## 三、评估已有权重
+
+```powershell
+& ".\.venv\Scripts\python.exe" validation/test.py --net_type micro --arch NSGANet --layers 20 --init_channels 36 --filter_increment 6 --SE --auxiliary --model_path "train-EXP-xxxx\model.pt"
+```
+
+| 参数 | 说明 |
+|---|---|
+| `--model_path` | 上一步产出的 `model.pt` 路径（默认 `EXP/model.pt`） |
+| 其余结构参数 | **必须和训练时完全一致**，否则权重加载尺寸不匹配 |
+
+---
+
+## 四、辅助命令
+
+```powershell
+# 确认用的是 GPU
+& ".\.venv\Scripts\python.exe" -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+
+# 看某个实验目录里每个架构的成绩（PowerShell）
+Get-ChildItem "search-GA-BiObj-micro-*\arch_*\log.txt" | ForEach-Object { $_.FullName; Select-String $_.FullName -Pattern "valid_acc|flops" | ForEach-Object { $_.Line } }
+```
+
+---
+
+## ⚠️ 一个必须先知道的坑
+
+`evolution_search.py` **只把结果写进 `log.txt`，不会保存成可直接读取的文件**（[pop_hist](file:///e:/%7Bpostgraduate_study%7D/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/search/evolution_search.py#L51) 声明了但从没用过）。所以：
+
+搜索出的最好架构，想用 `train.py` 完整训练时，需要**手动把 log 里的那行 `Genotype(...)` 复制进 [micro_genotypes.py](file:///e:/%7Bpostgraduate_study%7D/Article%20and%20Code/EA_NAS_PRJ/nsga-net-master/models/micro_genotypes.py) 并起个名字**，再用 `--arch 那个名字` 去训练。
+
+完整流程：先跑一、跑出 `Genotype` → 贴进 `micro_genotypes.py` → 跑二 → 跑三。需要我帮你写个小脚本，把搜索 log 自动转换成 `micro_genotypes.py` 里的条目吗？
